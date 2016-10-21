@@ -90,9 +90,48 @@ function startserver()
 		print("\n")
 	end
 
-	print("Overall: " * computeoverall(score))
+	print("Overall: " * computeoverall(score) * "\n")
 
 	ZMQ.send(server, "end")
+end
+
+function startclient()
+	score = Score(0, 0)
+
+	context = Context()
+	client = Socket(context, PAIR)
+
+	address = "tcp://" * getlocalip() * ":" * ENV["PORT"]
+	games = ENV["GAMES"]
+
+	ZMQ.bind(client, address)
+	print("Address: " * address * "\n")
+	print("Games: " * games * "\n")
+
+	ZMQ.send(client, games)
+
+	for game = 1:parse(games)
+		yourmove = unsafe_string(ZMQ.recv(client))
+
+		mymove = rand(["rock", "paper", "scissors"])
+		ZMQ.send(client, mymove)
+
+		print("Game: " * dec(game) * "\n")
+		print("Me: " * mymove * "\n")
+		print("You: " * yourmove * "\n")
+
+		winner = computeresults(mymove, yourmove)
+		print("Winner: " * winner * "\n")
+
+		updatescore!(score, winner)
+		print("Score: " * dec(score.myscore) * "/" * dec(score.yourscore) * "\n")
+
+		print("\n")
+	end
+
+	print("Overall: " * computeoverall(score) * "\n")
+
+	ZMQ.send(client, "end")
 end
 
 try
