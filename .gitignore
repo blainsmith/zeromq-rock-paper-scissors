@@ -25,5 +25,5 @@ _testmain.go
 *.test
 *.prof
 
-vendor/*
-!vendor/vendor.json
+go/vendor/*
+!go/vendor/vendor.json
