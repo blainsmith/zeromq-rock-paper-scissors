@@ -11,8 +11,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-type games struct {
-	count     int
+type score struct {
 	myScore   int
 	yourScore int
 }
@@ -69,25 +68,25 @@ func computeResult(me, you string) string {
 	return TIE
 }
 
-func updateScore(games *games, winner string) {
+func updateScore(score *score, winner string) {
 	if winner == ME {
-		games.myScore += 1
+		score.myScore += 1
 	} else if winner == YOU {
-		games.yourScore += 1
+		score.yourScore += 1
 	}
 }
 
-func computeOverall(games *games) string {
-	if games.myScore > games.yourScore {
+func computeOverall(score *score) string {
+	if score.myScore > score.yourScore {
 		return ME
-	} else if games.myScore < games.yourScore {
+	} else if score.myScore < score.yourScore {
 		return YOU
 	}
 	return TIE
 }
 
 func startServer() {
-	serverGames := &games{}
+	score := &score{}
 
 	// Discover the local IP address and construct the TCP address with the given PORT
 	ip, _ := getLocalIP()
@@ -99,11 +98,11 @@ func startServer() {
 	server.Bind(address)
 
 	// Set the game count to be play with the given GAMES
-	serverGames.count, _ = strconv.Atoi(os.Getenv("GAMES"))
+	games, _ := strconv.Atoi(os.Getenv("GAMES"))
 
 	// Display the TCP address and number of games to be played so a client can connect
 	fmt.Println("Address:", address)
-	fmt.Println("Games:", serverGames.count)
+	fmt.Println("Games:", games)
 	fmt.Println("")
 
 	// Block untol a client connect and on connection send the number of games to be played
@@ -111,10 +110,7 @@ func startServer() {
 
 	startTime := time.Now()
 
-	gameCounter := 0
-	for {
-		gameCounter++
-
+	for game := 1; game <= games; game++ {
 		// Block and wait for the client to send their move
 		yourMove, _ := server.Recv(0)
 
@@ -126,7 +122,7 @@ func startServer() {
 		}
 
 		// Display the game and the moves
-		fmt.Println("Game:", gameCounter)
+		fmt.Println("Game:", game)
 		fmt.Println("Me:", myMove)
 		fmt.Println("You:", yourMove)
 
@@ -135,25 +131,21 @@ func startServer() {
 		fmt.Println("Winner:", winner)
 
 		// Update and display the running score
-		updateScore(serverGames, winner)
-		fmt.Println("Score:", serverGames.myScore, "/", serverGames.yourScore)
+		updateScore(score, winner)
+		fmt.Println("Score:", score.myScore, "/", score.yourScore)
 		fmt.Println("")
-
-		// If the current game counter is the number of games to be played then break the loop to stop playing
-		if gameCounter == serverGames.count {
-			// Send "end" to the client to tell them the games are over and to disconnect
-			server.Send("end", 0)
-			break
-		}
 	}
 
+	// Send "end" to the client to tell them the games are over and to disconnect
+	server.Send("end", 0)
+
 	// After quiting th loop the games are over so display the final winner
-	fmt.Println("Overall:", computeOverall(serverGames))
+	fmt.Println("Overall:", computeOverall(score))
 	fmt.Println("Time Spent Playing:", time.Now().Sub(startTime))
 }
 
 func startClient() {
-	clientGames := &games{}
+	score := &score{}
 
 	// Start a new client PAIR socket and connect to the given ADDRESS
 	client, _ := zmq.NewSocket(zmq.PAIR)
@@ -162,8 +154,7 @@ func startClient() {
 
 	// After connecting receive the first message from the server as the number of games to be played
 	games, _ := client.Recv(0)
-	clientGames.count, _ = strconv.Atoi(games)
-	fmt.Println("Games:", clientGames.count)
+	fmt.Println("Games:", games)
 	fmt.Println("")
 
 	startTime := time.Now()
@@ -196,13 +187,13 @@ func startClient() {
 		fmt.Println("Winner:", winner)
 
 		// Update and display the running score
-		updateScore(clientGames, winner)
-		fmt.Println("Score:", clientGames.myScore, "/", clientGames.yourScore)
+		updateScore(score, winner)
+		fmt.Println("Score:", score.myScore, "/", score.yourScore)
 		fmt.Println("")
 	}
 
 	// After quiting th loop the games are over so display the final winner
-	fmt.Println("Overall:", computeOverall(clientGames))
+	fmt.Println("Overall:", computeOverall(score))
 	fmt.Println("Time Spent Playing:", time.Now().Sub(startTime))
 }
 
