@@ -71,10 +71,12 @@ function startserver()
 
 	ZMQ.send(server, games)
 
+	starttime = time() * 1000
+
 	for game = 1:parse(games)
 		yourmove = unsafe_string(ZMQ.recv(server))
 
-		mymove = rand(["rock", "paper", "scissors"])
+		mymove = rand([ROCK, PAPER, SCISSORS])
 		ZMQ.send(server, mymove)
 
 		print("Game: " * dec(game) * "\n")
@@ -92,6 +94,11 @@ function startserver()
 
 	print("Overall: " * computeoverall(score) * "\n")
 
+	endtime = time() * 1000
+	print("Time Spent Playing: ")
+	print(endtime - starttime)
+	print("ms\n")
+
 	ZMQ.send(server, "end")
 end
 
@@ -101,22 +108,26 @@ function startclient()
 	context = Context()
 	client = Socket(context, PAIR)
 
-	address = "tcp://" * getlocalip() * ":" * ENV["PORT"]
-	games = ENV["GAMES"]
+	ZMQ.connect(client, ENV["ADDRESS"])
 
-	ZMQ.bind(client, address)
-	print("Address: " * address * "\n")
+	games = unsafe_string(ZMQ.recv(client))
 	print("Games: " * games * "\n")
 
-	ZMQ.send(client, games)
+	starttime = time() * 1000
 
-	for game = 1:parse(games)
-		yourmove = unsafe_string(ZMQ.recv(client))
+	gamecounter = 0
+	while true
+		gamecounter = gamecounter + 1
 
-		mymove = rand(["rock", "paper", "scissors"])
+		mymove = rand([ROCK, PAPER, SCISSORS])
 		ZMQ.send(client, mymove)
 
-		print("Game: " * dec(game) * "\n")
+		yourmove = unsafe_string(ZMQ.recv(client))
+		if yourmove == "end"
+			break
+		end
+
+		print("Game: " * dec(gamecounter) * "\n")
 		print("Me: " * mymove * "\n")
 		print("You: " * yourmove * "\n")
 
@@ -131,11 +142,21 @@ function startclient()
 
 	print("Overall: " * computeoverall(score) * "\n")
 
-	ZMQ.send(client, "end")
+	endtime = time() * 1000
+	print("Time Spent Playing: ")
+	print(endtime - starttime)
+	print("ms\n")
 end
 
 try
 	address = ENV["ADDRESS"]
+	startclient()
 catch
+end
+
+try
+	port = ENV["PORT"]
+	games = ENV["GAMES"]
 	startserver()
+catch
 end
