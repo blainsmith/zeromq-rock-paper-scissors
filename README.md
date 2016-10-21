@@ -8,8 +8,17 @@ Since ZeroMQ uses TCP as its protocol a server and client can be written in any 
 
 Specify `GAMES` and `PORT` to start as a server and wait for a connection.
 
+**Go**
 ```bash
-$ GAMES=7 PORT=1313 go run main.go
+$ GAMES=7 PORT=1313 go run go/main.go
+Address: tcp://10.0.0.13:1313
+Games: 7
+...
+```
+
+**Julia**
+```bash
+$ GAMES=7 PORT=1313 julia julia/main.jl
 Address: tcp://10.0.0.13:1313
 Games: 7
 ...
@@ -19,8 +28,16 @@ Games: 7
 
 Specify `ADDRESS` of a running server.
 
+**Go**
 ```bash
-$ ADDRESS=tcp://10.0.0.13:1313 go run main.go
+$ ADDRESS=tcp://10.0.0.13:1313 go run go/main.go
+Games: 7
+...
+```
+
+**Julia**
+```bash
+$ ADDRESS=tcp://10.0.0.13:1313 julia julia/main.jl
 Games: 7
 ...
 ```
