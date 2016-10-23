@@ -100,6 +100,8 @@ func startServer() {
 		switch strat {
 		case "wsls":
 			strategy = &rps.WinStayLoseShiftStrategy{PreviousGame: games[game]}
+		case "lt":
+			strategy = &rps.LeastThrownStrategy{Games: games}
 		case "random":
 		default:
 			strategy = &rps.RandomStrategy{}

@@ -3,12 +3,8 @@ package rps
 import (
 	"math/rand"
 	"time"
+	"fmt"
 )
-
-var Strategies map[string]Strategy = map[string]Strategy{
-	"random": &RandomStrategy{},
-	"wsls": &WinStayLoseShiftStrategy{},
-}
 
 type Strategy interface {
 	Throw() string
@@ -44,6 +40,35 @@ func (strategy *WinStayLoseShiftStrategy) Throw() string {
 		case SCISSORS:
 			return ROCK
 		}
+	}
+
+	randomStrategy := &RandomStrategy{}
+	return randomStrategy.Throw()
+}
+
+type LeastThrownStrategy struct {
+	Games []*Game
+}
+
+func (strategy *LeastThrownStrategy) Throw() string {
+	throws := map[string]int{
+		ROCK: 0,
+		PAPER: 0,
+		SCISSORS: 0,
+	}
+
+	for _, game := range strategy.Games {
+		if game != nil {
+			throws[game.YourThrow] = throws[game.YourThrow] + 1
+		}
+	}
+
+	if throws[ROCK] < throws[PAPER] && throws[ROCK] < throws[SCISSORS] {
+		return PAPER
+	} else if throws[PAPER] < throws[ROCK] && throws[PAPER] < throws[SCISSORS] {
+		return SCISSORS
+	} else if throws[SCISSORS] < throws[ROCK] && throws[SCISSORS] < throws[PAPER] {
+		return ROCK
 	}
 
 	randomStrategy := &RandomStrategy{}
