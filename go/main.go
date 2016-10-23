@@ -2,31 +2,20 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"strconv"
 	"time"
 
 	zmq "github.com/pebbe/zmq4"
+
+	"github.com/blainsmith/zeromq-rock-paper-scissors/go/rps"
 )
 
 type score struct {
 	myScore   int
 	yourScore int
 }
-
-const (
-	ROCK     = "rock"
-	PAPER    = "paper"
-	SCISSORS = "scissors"
-
-	ME  = "Me"
-	YOU = "You"
-	TIE = "Tie"
-)
-
-var moves []string = []string{ROCK, PAPER, SCISSORS}
 
 func getLocalIP() (net.IP, error) {
 	addresses, err := net.InterfaceAddrs()
@@ -45,44 +34,21 @@ func getLocalIP() (net.IP, error) {
 	return nil, nil
 }
 
-func throwMove() string {
-	rand.Seed(time.Now().UTC().UnixNano())
-	return moves[rand.Intn(3)]
-}
-
-func computeResult(me, you string) string {
-	switch {
-	case me == ROCK && you == PAPER:
-		return YOU
-	case me == SCISSORS && you == PAPER:
-		return ME
-	case me == PAPER && you == ROCK:
-		return ME
-	case me == SCISSORS && you == ROCK:
-		return YOU
-	case me == PAPER && you == SCISSORS:
-		return YOU
-	case me == ROCK && you == SCISSORS:
-		return ME
-	}
-	return TIE
-}
-
 func updateScore(score *score, winner string) {
-	if winner == ME {
+	if winner == rps.ME {
 		score.myScore += 1
-	} else if winner == YOU {
+	} else if winner == rps.YOU {
 		score.yourScore += 1
 	}
 }
 
 func computeOverall(score *score) string {
 	if score.myScore > score.yourScore {
-		return ME
+		return rps.ME
 	} else if score.myScore < score.yourScore {
-		return YOU
+		return rps.YOU
 	}
-	return TIE
+	return rps.TIE
 }
 
 func startServer() {
@@ -98,11 +64,19 @@ func startServer() {
 	server.Bind(address)
 
 	// Set the game count to be play with the given GAMES
-	games, _ := strconv.Atoi(os.Getenv("GAMES"))
+	numGames, _ := strconv.Atoi(os.Getenv("GAMES"))
+
+	strat := os.Getenv("STRATEGY")
+	if strat == "" {
+		strat = "random"
+	}
+	var strategy rps.Strategy = &rps.RandomStrategy{}
+
+	games := make([]*rps.Game, numGames)
 
 	// Display the TCP address and number of games to be played so a client can connect
 	fmt.Println("Address:", address)
-	fmt.Println("Games:", games)
+	fmt.Println("Games:", numGames)
 	fmt.Println("")
 
 	// Block untol a client connect and on connection send the number of games to be played
@@ -110,24 +84,34 @@ func startServer() {
 
 	startTime := time.Now()
 
-	for game := 1; game <= games; game++ {
+	for game := 0; game < numGames; game++ {
 		// Block and wait for the client to send their move
-		yourMove, _ := server.Recv(0)
+		yourThrow, _ := server.Recv(0)
 
 		// Throw your move to the client
-		myMove := throwMove()
-		_, err := server.Send(myMove, 0)
+		myThrow := strategy.Throw()
+
+		_, err := server.Send(myThrow, 0)
 		if err != nil {
 			break //  Interrupted
 		}
 
+		games[game] = rps.NewGame(myThrow, yourThrow)
+		switch strat {
+		case "wsls":
+			strategy = &rps.WinStayLoseShiftStrategy{PreviousGame: games[game]}
+		case "random":
+		default:
+			strategy = &rps.RandomStrategy{}
+		}
+
 		// Display the game and the moves
-		fmt.Println("Game:", game)
-		fmt.Println("Me:", myMove)
-		fmt.Println("You:", yourMove)
+		fmt.Println("Game:", (game+1))
+		fmt.Println("Me:", myThrow)
+		fmt.Println("You:", yourThrow)
 
 		// Compute and display the winner
-		winner := computeResult(myMove, yourMove)
+		winner := games[game].Winner
 		fmt.Println("Winner:", winner)
 
 		// Update and display the running score
@@ -153,43 +137,61 @@ func startClient() {
 	client.Connect(os.Getenv("ADDRESS"))
 
 	// After connecting receive the first message from the server as the number of games to be played
-	games, _ := client.Recv(0)
-	fmt.Println("Games:", games)
+	gamesFromServer, _ := client.Recv(0)
+	numGames, _ := strconv.Atoi(gamesFromServer)
+	fmt.Println("Games:", numGames)
 	fmt.Println("")
 
 	startTime := time.Now()
 
+	strat := os.Getenv("STRATEGY")
+	if strat == "" {
+		strat = "random"
+	}
+	var strategy rps.Strategy = &rps.RandomStrategy{}
+
+	games := make([]*rps.Game, numGames)
+
 	// Start and increment a simple display counter
 	gameCounter := 0
 	for {
-		gameCounter++
-
 		// Start playing by sending a move
-		myMove := throwMove()
-		_, err := client.Send(myMove, 0)
+		myThrow := strategy.Throw()
+		_, err := client.Send(myThrow, 0)
 		if err != nil {
 			break //  Interrupted
 		}
 
 		// Block until you receive a move back, if the move is "end" then games are done and break the loop
-		yourMove, _ := client.Recv(0)
-		if yourMove == "end" {
+		yourThrow, _ := client.Recv(0)
+		if yourThrow == "end" {
 			break
 		}
 
+		games[gameCounter] = rps.NewGame(myThrow, yourThrow)
+		switch strat {
+		case "wsls":
+			strategy = &rps.WinStayLoseShiftStrategy{PreviousGame: games[gameCounter]}
+		case "random":
+		default:
+			strategy = &rps.RandomStrategy{}
+		}
+
 		// Display the game and the moves
-		fmt.Println("Game:", gameCounter)
-		fmt.Println("Me:", myMove)
-		fmt.Println("You:", yourMove)
+		fmt.Println("Game:", (gameCounter+1))
+		fmt.Println("Me:", myThrow)
+		fmt.Println("You:", yourThrow)
 
 		// Compute and display the winner
-		winner := computeResult(myMove, yourMove)
+		winner := games[gameCounter].Winner
 		fmt.Println("Winner:", winner)
 
 		// Update and display the running score
 		updateScore(score, winner)
 		fmt.Println("Score:", score.myScore, "/", score.yourScore)
 		fmt.Println("")
+
+		gameCounter++
 	}
 
 	// After quiting th loop the games are over so display the final winner
