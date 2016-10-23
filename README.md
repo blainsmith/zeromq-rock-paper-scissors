@@ -41,3 +41,30 @@ $ ADDRESS=tcp://10.0.0.13:1313 julia julia/main.jl
 Games: 7
 ...
 ```
+
+## Strategies
+
+Right now only the Go code has strategies implemented. These strategies can be set with the `STRATEGY` variable.
+
+### Random (default)
+
+Randomly chooses rock, paper, scissors to throw.
+
+### Win-Stay, Lose-Switch: `STRATEGY=wsls`
+
+1. If you **win** the game, your next throw should beat **your** winning throw
+2. If you **lose** the game, your next throw should beat **their** winning throw
+
+https://en.wikipedia.org/wiki/Win%E2%80%93stay,_lose%E2%80%93switch
+
+### Least Thrown: `STRATEGY=lt`
+
+Calculates **their** least thrown and throws the beating throw to that.
+
+### Most Thrown: `STRATEGY=mt`
+
+Calculates **their** most thrown and throws the beating throw to that.
+
+### Literal Sequence: `STRATEGY=ls`
+
+Throws rock, paper, scissors in that order...forever.
