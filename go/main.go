@@ -63,8 +63,16 @@ func startServer() {
 	defer server.Close()
 	server.Bind(address)
 
+	delay, err := strconv.Atoi(os.Getenv("DELAY"))
+	if err != nil {
+		delay = 0
+	}
+
 	// Set the game count to be play with the given GAMES
-	numGames, _ := strconv.Atoi(os.Getenv("GAMES"))
+	numGames, err := strconv.Atoi(os.Getenv("GAMES"))
+	if err != nil {
+		numGames = 5
+	}
 
 	strat := os.Getenv("STRATEGY")
 	if strat == "" {
@@ -129,7 +137,7 @@ func startServer() {
 		fmt.Println("Score:", score.myScore, "/", score.yourScore)
 		fmt.Println("")
 
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * time.Duration(delay))
 	}
 
 	// Send "end" to the client to tell them the games are over and to disconnect
