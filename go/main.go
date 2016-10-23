@@ -118,6 +118,8 @@ func startServer() {
 			strategy = &rps.LeastThrownStrategy{Games: games}
 		case "ls":
 			strategy = &rps.LiteralSequenceStrategy{PreviousGame: games[game]}
+		case "tls":
+			strategy = &rps.ThirdLiteralSequenceStrategy{Games: games}
 		case "random":
 		default:
 			strategy = &rps.RandomStrategy{}
@@ -198,6 +200,8 @@ func startClient() {
 			strategy = &rps.LeastThrownStrategy{Games: games}
 		case "ls":
 			strategy = &rps.LiteralSequenceStrategy{PreviousGame: games[gameCounter]}
+		case "tls":
+			strategy = &rps.ThirdLiteralSequenceStrategy{Games: games}
 		case "random":
 		default:
 			strategy = &rps.RandomStrategy{}

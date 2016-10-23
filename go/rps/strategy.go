@@ -121,3 +121,36 @@ func (strategy *LiteralSequenceStrategy) Throw() string {
 
 	return ROCK
 }
+
+type ThirdLiteralSequenceStrategy struct {
+	Games []*Game
+}
+
+func (strategy *ThirdLiteralSequenceStrategy) Throw() string {
+	var playedGames []*Game
+
+	for _, game := range strategy.Games {
+		if game != nil {
+			playedGames = append(playedGames, game)
+		}
+	}
+
+	if len(playedGames) % 3 == 0 {
+		index := len(playedGames) - 3
+		if index >= 0 {
+			if game := playedGames[index]; game != nil {
+				switch game.MyThrow {
+				case ROCK:
+					return PAPER
+				case PAPER:
+					return SCISSORS
+				case SCISSORS:
+					return ROCK
+				}
+			}
+		}
+	}
+
+	randomStrategy := &RandomStrategy{}
+	return randomStrategy.Throw()
+}
