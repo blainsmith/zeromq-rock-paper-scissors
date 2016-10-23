@@ -70,7 +70,11 @@ func startServer() {
 	if strat == "" {
 		strat = "random"
 	}
+
 	var strategy rps.Strategy = &rps.RandomStrategy{}
+	if strat == "ls" {
+		strategy = &rps.LiteralSequenceStrategy{}
+	}
 
 	games := make([]*rps.Game, numGames)
 
@@ -102,6 +106,10 @@ func startServer() {
 			strategy = &rps.WinStayLoseShiftStrategy{PreviousGame: games[game]}
 		case "lt":
 			strategy = &rps.LeastThrownStrategy{Games: games}
+		case "mt":
+			strategy = &rps.LeastThrownStrategy{Games: games}
+		case "ls":
+			strategy = &rps.LiteralSequenceStrategy{PreviousGame: games[game]}
 		case "random":
 		default:
 			strategy = &rps.RandomStrategy{}
@@ -120,6 +128,8 @@ func startServer() {
 		updateScore(score, winner)
 		fmt.Println("Score:", score.myScore, "/", score.yourScore)
 		fmt.Println("")
+
+		time.Sleep(time.Second * 1)
 	}
 
 	// Send "end" to the client to tell them the games are over and to disconnect
@@ -174,6 +184,12 @@ func startClient() {
 		switch strat {
 		case "wsls":
 			strategy = &rps.WinStayLoseShiftStrategy{PreviousGame: games[gameCounter]}
+		case "lt":
+			strategy = &rps.LeastThrownStrategy{Games: games}
+		case "mt":
+			strategy = &rps.LeastThrownStrategy{Games: games}
+		case "ls":
+			strategy = &rps.LiteralSequenceStrategy{PreviousGame: games[gameCounter]}
 		case "random":
 		default:
 			strategy = &rps.RandomStrategy{}
